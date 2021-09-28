@@ -10,4 +10,16 @@ trait Config {
   val saleEndsBefore = config.getInt("tickets4sale.show.ticket-sale-end-before")
   val showDuration = config.getInt("tickets4sale.show.days-running")
 
+  val dbHost = config.getString("tickets4sale.database.host")
+  val dbPort = config.getInt("tickets4sale.database.port")
+  val dbName = config.getString("tickets4sale.database.dbname")
+
+  val dbUsername = config.getString("tickets4sale.database.username")
+  val dbPassword = config.getString("tickets4sale.database.password")
+
+  val dbAppName = config.getString("tickets4sale.database.app-name")
+
+  val dbUseSsl = config.getBoolean("tickets4sale.database.use-ssl")
+
+
 }

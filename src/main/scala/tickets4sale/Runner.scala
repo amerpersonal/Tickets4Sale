@@ -5,19 +5,27 @@ package tickets4sale
 //import java.time.temporal.{ChronoField, ChronoUnit, TemporalField}
 //import java.util.Calendar
 
+
+import org.joda.time.LocalDate
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter, ISODateTimeFormat}
-import org.joda.time.{DateTime, Days, LocalDate, ReadablePeriod}
 import spray.json.{JsArray, JsObject, JsString, JsValue, RootJsonFormat}
 import tickets4sale.models._
 import tickets4sale.utils.DateUtils
 import spray.json._
+import tickets4sale.config.Config
+
 import scala.io.{Source, StdIn}
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import tickets4sale.serializers.PerformanceInventorySerializer._
 import tickets4sale.serializers.ShowSerializer._
+import slick.jdbc.PostgresProfile
+import org.postgresql.PGConnection
+import slick.jdbc.PostgresProfile.api._
+import tickets4sale.database.dsl.DatabaseOps
 
+import scala.concurrent.ExecutionContext.Implicits.global
 
-object Runner {
+object Runner extends Config with DatabaseOps {
   import DateUtils._
 
   def readLine(): Option[String] = Some(StdIn.readLine())
@@ -26,41 +34,6 @@ object Runner {
 
 
   def main(args: Array[String]): Unit = {
-
-
-//    def totalInventory(queryDate: LocalDate, performanceDate: LocalDate, shows: Seq[Show]): Map[String, Seq[Either[PerformanceInventory, Show]]] = {
-//      val showsByGenre = shows.groupBy(_.genre).map { case (genre, shows) =>
-//        (genre.name, shows)
-//      }
-//
-//
-//      showsByGenre.mapValues { shows =>
-//        shows.map { s =>
-//          s.inventory(queryDate, performanceDate).map(Left(_)).getOrElse(Right(s))
-//        }
-//      }
-//    }
-
-
-
-
-
-    //    for {
-    //      _ <- printLine("Performance date: ")
-    //      pds <- readLine()
-    //      pd <- Try(LocalDate.parse(pds, ISODateTimeFormat.basicDate())).toOption.orElse(throw Exception("Invalid date"); LocalDate.now())
-    //    } yield println(Days.daysBetween(LocalDate.now(), pd))
-
-    //    printLine("Performance date: ")
-
-    //    val pds = StdIn.readLine()
-
-    //    val pd = LocalDate.parse("2018-01-01", ISODateTimeFormat.date())
-    //
-    //    val lines = Source.fromFile("shows.csv").getLines()
-    //    val (shows, failures) = Show.readAllFromCsv(lines)
-    //
-    //    println(failures.head.exception.getMessage)
 
     val qd = parseDate("2021-10-30")
     val pd = parseDate("2021-11-05")
@@ -81,6 +54,22 @@ object Runner {
 //    println(ti.toJson.toString())
 
 
+    val conn = Database.forURL(dbUrl(), dbUsername, dbPassword, null, "org.postgresql.Driver")
+
+
+    reserveTicket("cats", LocalDate.now().plusDays(10))(conn).onComplete {
+      case Success(r) => println(s"xxx r: ${r}")
+      case Failure(ex: Throwable) => println(s"error: ${ex.getMessage}")
+    }
+
+    Thread.sleep(5000)
   }
 
+  def dbUrl() = {
+    val sslOptions = if(dbUseSsl) s"&ssl=${dbUseSsl}&sslfactory=org.postgresql.ssl.NonValidatingFactory&sslmode=prefer" else ""
+
+    val connectionString = s"jdbc:postgresql://${dbHost}:${dbPort}/${dbName}?ApplicationName=${dbAppName}${sslOptions}"
+
+    connectionString
+  }
 }

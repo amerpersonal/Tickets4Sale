@@ -17,7 +17,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 trait Api extends Validators {
-  import tickets4sale.serializers.FullPerformanceInventorySerializer._
 
   val apiPrefix = "api"
   val apiVersion = "v1"

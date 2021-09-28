@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import tickets4sale.behaviors.Inventory
-import tickets4sale.behaviors.Inventory.{CalculatePerformanceInventory, FullPerformanceInventory}
+import tickets4sale.behaviors.Inventory.{CalculatePerformanceInventory, FullPerformanceInventory, ReservationCompleted, ReserveTicket}
 import akka.actor.typed.scaladsl.AskPattern._
 
 import scala.concurrent.duration._
@@ -14,8 +14,11 @@ import akka.http.scaladsl.server
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.util.Timeout
 import org.joda.time.LocalDate
+import tickets4sale.models.requests.ReserveTicketRequest
 
 import scala.util.{Failure, Success}
+import tickets4sale.serializers.requests.ReserveTicketRequestSerializer._
+import tickets4sale.serializers.ReservationCompletedSerializer._
 
 object WebServerTyped extends Validators {
   def main(args: Array[String]): Unit = {
@@ -41,6 +44,17 @@ object WebServerTyped extends Validators {
               val response: Future[FullPerformanceInventory] = inventoryActor.ask(CalculatePerformanceInventory(queryDate, performanceDate, _))
 
               complete(response)
+            }
+          }
+        } ~
+        post {
+          path("show" / "reserve_ticket") {
+            entity(as[ReserveTicketRequest]) { request =>
+
+              val response: Future[ReservationCompleted] = inventoryActor.ask(ReserveTicket(request.title, request.performanceDate, _))
+
+              complete(response)
+
             }
           }
         }
