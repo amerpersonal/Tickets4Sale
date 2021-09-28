@@ -3,11 +3,11 @@ package tickets4sale.services
 import org.joda.time.{Days, LocalDate}
 import tickets4sale.config.Config
 import tickets4sale.models.{Halls, PerformanceInventory, Show, TicketSaleState}
-import tickets4sale.repository.TicketOrderRepository
+import tickets4sale.repository.{ShowRepository, TicketOrderRepository}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait TicketStatusService extends Config { this: TicketOrderRepository =>
+trait TicketOrderService extends Config { this: TicketOrderRepository with ShowRepository =>
   def inventory(show: Show, queryDate: LocalDate, performanceDate: LocalDate)(implicit ec: ExecutionContext): Future[Option[PerformanceInventory]] = {
 
     if (isRunning(show, performanceDate)) {
@@ -37,6 +37,30 @@ trait TicketStatusService extends Config { this: TicketOrderRepository =>
 
   def isRunning(show: Show, performanceDate: LocalDate): Boolean = {
     performanceDate.isAfter(show.openingDay.minusDays(1)) && performanceDate.isBefore(show.openingDay.plusDays(showDuration))
+  }
+
+  def reserve(title: String, queryDate: LocalDate, performanceDate: LocalDate): Future[Int] = {
+    loadShows().find(title ==).map { show =>
+
+      val runningForDays = Days.daysBetween(show.openingDay, queryDate).getDays + 1
+
+      Halls.performanceHall(runningForDays).map { hall =>
+
+
+        getReservedTicketsForDay(title, queryDate, performanceDate).flatMap { reservedTickets =>
+          val ticketsLeftForToday = hall.ticketsAvailable(queryDate, performanceDate) - reservedTickets
+
+          if (ticketsLeftForToday == 0) Future.failed(throw new Throwable("No tickets left for ordering on this day"))
+          else reserve()
+        }
+
+      }.getOrElse {
+        Future.failed(new Throwable("Show not running"))
+      }
+    }.getOrElse {
+      Future.failed(new Throwable("Invalid show"))
+    }
+
   }
 
 }

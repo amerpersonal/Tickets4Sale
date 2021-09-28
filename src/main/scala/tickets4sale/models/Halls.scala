@@ -1,6 +1,6 @@
 package tickets4sale.models
 
-import org.joda.time.LocalDate
+import org.joda.time.{Days, LocalDate}
 import tickets4sale.config.Config
 import tickets4sale.models.Halls.Big.config
 
@@ -33,6 +33,13 @@ object Halls {
       if (remainingDaysUntilPerformance < saleEndsBefore) 0
       else if (remainingDaysUntilPerformance  > saleStartsBefore) capacity
       else (remainingDaysUntilPerformance - saleEndsBefore) * ticketsPerDay
+
+    }
+
+    def ticketsAvailable(queryDate: LocalDate, performanceDate: LocalDate): Int = {
+      val remainingDaysUntilPerformance = Days.daysBetween(queryDate, performanceDate).getDays + 1
+      if (remainingDaysUntilPerformance < saleEndsBefore || remainingDaysUntilPerformance > saleStartsBefore) 0
+      else ticketsPerDay
 
     }
 

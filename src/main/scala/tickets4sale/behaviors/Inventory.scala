@@ -6,17 +6,19 @@ import org.joda.time.LocalDate
 import tickets4sale.database.DatabaseConnection
 import tickets4sale.database.dsl.DatabaseOps
 import tickets4sale.models.{PerformanceInventory, Show}
+import tickets4sale.repository.{ShowCSVRepository, TicketOrderDatabaseRepository}
+import tickets4sale.services.{ShowsService, TicketOrderService}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
 import scala.util.{Failure, Success}
 
-object Inventory extends DatabaseOps {
+object Inventory extends ShowsService with ShowCSVRepository with TicketOrderService with TicketOrderDatabaseRepository {
   sealed trait InventoryMessage
 
   final case class CalculatePerformanceInventory(queryDate: LocalDate, performanceDate: LocalDate, sender: ActorRef[FullPerformanceInventory]) extends InventoryMessage
 
-  final case class ReserveTicket(name: String, performanceDate: LocalDate, sender: ActorRef[ReservationCompleted]) extends InventoryMessage
+  final case class ReserveTicket(name: String, queryDate: LocalDate, performanceDate: LocalDate, sender: ActorRef[ReservationCompleted]) extends InventoryMessage
 
   final case class FullPerformanceInventory(inventory: Map[String, Seq[PerformanceInventory]]) extends InventoryMessage
 
@@ -39,7 +41,7 @@ object Inventory extends DatabaseOps {
 
           Behaviors.same
         }
-        case ReserveTicket(title, performanceDate, sender) => {
+        case ReserveTicket(title, queryDate, performanceDate, sender) => {
           reserveTicket(title, performanceDate)(DatabaseConnection.connection).onComplete {
             case Success(numberOfRows: Int) => sender ! ReservationCompleted(title, performanceDate, LocalDate.now())
             case Failure(ex) => context.log.error(s"Error on reserving ticket ${ex.getMessage}")
@@ -56,13 +58,11 @@ object Inventory extends DatabaseOps {
       (genre.name, shows)
     }
 
-
     showsByGenre.map { case (genre, shows) =>
       shows.map { s =>
         s.inventory(queryDate, performanceDate)
       }
     }
-
 
     val calculations = shows.map(_.inventory(queryDate, performanceDate))
 

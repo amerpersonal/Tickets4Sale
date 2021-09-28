@@ -2,6 +2,7 @@ package tickets4sale.repository
 
 
 import org.joda.time.LocalDate
+import slick.jdbc.PostgresProfile
 import tickets4sale.models.Show
 
 import scala.concurrent.Future
@@ -23,5 +24,16 @@ trait TicketOrderRepository {
     * @param performanceDate
     * @return tuple containing of (number of tickets ordered on a current day for a specific performance, total number of tickets ordered for performance)
     */
-  def orderTicket(show: Show, performanceDate: LocalDate): Future[(Int, Int)]
+  def orderTicket(show: Show, performanceDate: LocalDate, dbConn: PostgresProfile.backend.DatabaseDef): Future[(Int, Int)]
+
+
+  /**
+    * Get a number of tickets reserved on a specific day for a specific performance
+    * @param title
+    * @param queryDate
+    * @param performanceDate
+    * @return
+    */
+  def getReservedTicketsForDay(title: String, queryDate: LocalDate, performanceDate: LocalDate, dbConn: PostgresProfile.backend.DatabaseDef = null): Future[Int]
+
 }

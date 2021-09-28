@@ -1,40 +1,84 @@
 package tickets4sale.api
 
 import akka.actor.typed.{ActorRef, ActorSystem}
+import akka.actor.typed.scaladsl.Behaviors
 import akka.http.scaladsl.Http
-import akka.stream.Materializer
-import akka.util.Timeout
+import akka.http.scaladsl.server.Directives._
 import tickets4sale.behaviors.Inventory
-import akka.actor.typed.scaladsl.adapter._
-import scala.concurrent.ExecutionContext
+import tickets4sale.behaviors.Inventory.{CalculatePerformanceInventory, FullPerformanceInventory, ReservationCompleted, ReserveTicket}
+import akka.actor.typed.scaladsl.AskPattern._
+
 import scala.concurrent.duration._
+import scala.concurrent.Future
+import akka.http.scaladsl.server
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.util.Timeout
+import org.joda.time.LocalDate
+import tickets4sale.models.requests.ReserveTicketRequest
+
+import scala.util.{Failure, Success}
+import tickets4sale.serializers.requests.ReserveTicketRequestSerializer._
+import tickets4sale.serializers.ReservationCompletedSerializer._
+
+object WebServer extends Validators {
+  def main(args: Array[String]): Unit = {
+    val guardian = Behaviors.setup[Nothing] { context =>
+      import tickets4sale.serializers.FullPerformanceInventorySerializers._
+
+      val inventoryActor = context.spawn(Inventory(), name = "InventoryActor")
+
+      context.watch(inventoryActor)
 
 
-object WebServer extends App with Api {
-  val serverInterface = "0.0.0.0"
-  val serverPort = 8080
+      implicit val actorSystem: ActorSystem[_] = context.system
 
-  implicit val timeout  = Timeout(3.seconds)
+      implicit val ec = context.system.executionContext
 
-//  implicit val mat = Materializer.matFromSystem(new ClassicActorSystemProvider {
-//    override def classicSystem: ActorSystem = actorSystem
-//  })
+      implicit val timeout = Timeout(4.seconds)
 
-  implicit val actorSystem: ActorSystem[Inventory.CalculatePerformanceInventory] = ActorSystem(Inventory(), "inventory")
+      val routes = pathPrefix("api" / "v1") {
+        get {
+          path("performance_inventory") {
+            validateInventoryDates("query_date", "performance_date") { case (queryDate, performanceDate) =>
 
+              val response: Future[FullPerformanceInventory] = inventoryActor.ask(CalculatePerformanceInventory(queryDate, performanceDate, _))
 
+              complete(response)
+            }
+          }
+        } ~
+        post {
+          path("show" / "reserve_ticket") {
+            entity(as[ReserveTicketRequest]) { request =>
 
-//  implicit val actorSystem: ActorSystem[_] = ActorSystem(Inventory.apply(), "inventory")
+              val response: Future[ReservationCompleted] = inventoryActor.ask(ReserveTicket(request.title, request.performanceDate, _))
 
-  implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+              complete(response)
 
-  val inventoryActor: ActorRef[Inventory.CalculatePerformanceInventory] = actorSystem
+            }
+          }
+        }
+      }
 
-  val responseActor: ActorRef[Inventory.CalculatePerformanceInventory] = actorSystem
+      val futureBinding = Http(context.system).newServerAt("0.0.0.0", 8080).bind(routes)
 
-  println(s"Bounding HTTP server to ${serverInterface}: ${serverPort}")
-  Http(actorSystem).newServerAt(serverInterface, serverPort).bind(routes)
+      futureBinding.onComplete {
+        case Success(binding) =>
+          val address = binding.localAddress
+          actorSystem.log.info("Server online at http://{}:{}/",
+            address.getHostString,
+            address.getPort)
+        case Failure(ex) =>
+          actorSystem.log.error("Failed to bind HTTP endpoint, terminating system", ex)
+          actorSystem.terminate()
+      }
 
+      Behaviors.empty
+    }
+
+    val system = ActorSystem[Nothing](guardian, "Guardian")
+
+  }
 
 
 }
