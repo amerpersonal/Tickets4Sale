@@ -3,14 +3,14 @@ package tickets4sale.models
 import org.joda.time.{Days, LocalDate}
 import org.joda.time.format.ISODateTimeFormat
 import tickets4sale.models.Genres.Genre
-import tickets4sale.repository.TicketOrderEmptyRepository
+import tickets4sale.repository.{ShowCSVRepository, TicketOrderEmptyRepository}
 import tickets4sale.services.TicketOrderService
 import tickets4sale.utils.DateUtils
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Try}
 
-case class Show(title: String, openingDay: LocalDate, genre: Genre) extends TicketOrderService with TicketOrderEmptyRepository {
+case class Show(title: String, openingDay: LocalDate, genre: Genre) extends TicketOrderService with TicketOrderEmptyRepository with ShowCSVRepository {
   def inventory(queryDate: LocalDate, performanceDate: LocalDate)(implicit ec: ExecutionContext): Future[Option[PerformanceInventory]] = inventory(this, queryDate, performanceDate)
 }
 

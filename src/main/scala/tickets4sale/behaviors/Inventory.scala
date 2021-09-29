@@ -18,11 +18,13 @@ object Inventory extends ShowsService with ShowCSVRepository with TicketOrderSer
 
   final case class CalculatePerformanceInventory(queryDate: LocalDate, performanceDate: LocalDate, sender: ActorRef[FullPerformanceInventory]) extends InventoryMessage
 
-  final case class ReserveTicket(name: String, queryDate: LocalDate, performanceDate: LocalDate, sender: ActorRef[ReservationCompleted]) extends InventoryMessage
+  final case class ReserveTicket(name: String, queryDate: LocalDate, performanceDate: LocalDate, sender: ActorRef[InventoryMessage]) extends InventoryMessage
 
   final case class FullPerformanceInventory(inventory: Map[String, Seq[PerformanceInventory]]) extends InventoryMessage
 
-  final case class ReservationCompleted(title: String, performanceDate: LocalDate, reservationDate: LocalDate)
+  final case class ReservationCompleted(title: String, performanceDate: LocalDate, reservationDate: LocalDate, ticketsLeft: Int) extends InventoryMessage
+
+  final case class ReservationFailed(exc: Throwable) extends InventoryMessage
 
   def apply(): Behavior[InventoryMessage] = {
     Behaviors.receive { case (context, message) =>
@@ -42,9 +44,12 @@ object Inventory extends ShowsService with ShowCSVRepository with TicketOrderSer
           Behaviors.same
         }
         case ReserveTicket(title, queryDate, performanceDate, sender) => {
-          reserveTicket(title, performanceDate)(DatabaseConnection.connection).onComplete {
-            case Success(numberOfRows: Int) => sender ! ReservationCompleted(title, performanceDate, LocalDate.now())
-            case Failure(ex) => context.log.error(s"Error on reserving ticket ${ex.getMessage}")
+          reserve(title, queryDate, performanceDate, DatabaseConnection.connection).onComplete {
+            case Success(ticketsLeft: Int) => sender ! ReservationCompleted(title, performanceDate, queryDate, ticketsLeft)
+            case Failure(ex) => {
+              println("failed")
+              sender ! ReservationFailed(ex)
+            }
           }
 
           Behaviors.same

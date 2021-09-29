@@ -7,6 +7,6 @@ import scala.util.Success
 
 trait ShowCSVRepository extends ShowRepository {
   def loadShows(): Seq[Show] = {
-    Source.fromFile("shows.csv").getLines().toSeq.map(Show.readFromLine(_)).collect { case Success(s) => s }
+    Source.fromFile("shows.csv").getLines().toList.map(Show.readFromLine(_)).collect { case Success(s) => s }
   }
 }

@@ -15,7 +15,6 @@ libraryDependencies ++= {
 
     "com.github.tototoshi" %% "slick-joda-mapper" % "2.4.2",
 
-
     "com.typesafe.akka" %% "akka-http-core" % akkaHttpVersion,
     "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
     "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
@@ -36,7 +35,6 @@ libraryDependencies ++= {
     "org.postgresql" % "postgresql" % "42.2.18",
 
     "com.typesafe.slick" %% "slick-hikaricp" % "3.3.3"
-
 
 
 

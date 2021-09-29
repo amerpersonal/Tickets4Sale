@@ -20,7 +20,13 @@ object ReserveTicketRequestSerializer {
         case _ => throw new Throwable(s"invalid or missing performance_date ${fields.get("performance_date")}")
       }
 
-      ReserveTicketRequest(title, performanceDate)
+      val queryDate = fields.get("query_date") match {
+        case Some(v: JsString) => Some(DateUtils.parseDate(v.value))
+        case None => None
+        case _ => throw new Throwable(s"invalid or missing performance_date ${fields.get("performance_date")}")
+      }
+
+      ReserveTicketRequest(title, queryDate, performanceDate)
     }
 
     implicit def write(req: ReserveTicketRequest): JsObject = ???

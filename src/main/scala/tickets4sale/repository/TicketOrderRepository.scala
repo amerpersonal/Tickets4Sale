@@ -24,7 +24,7 @@ trait TicketOrderRepository {
     * @param performanceDate
     * @return tuple containing of (number of tickets ordered on a current day for a specific performance, total number of tickets ordered for performance)
     */
-  def orderTicket(show: Show, performanceDate: LocalDate, dbConn: PostgresProfile.backend.DatabaseDef): Future[(Int, Int)]
+  def orderTicket(show: Show, queryDate: LocalDate, performanceDate: LocalDate, dbConn: PostgresProfile.backend.DatabaseDef): Future[Int]
 
 
   /**

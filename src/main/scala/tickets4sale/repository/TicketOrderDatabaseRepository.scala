@@ -10,11 +10,11 @@ import scala.concurrent.Future
 trait TicketOrderDatabaseRepository extends TicketOrderRepository with DatabaseOps {
   def getOrderedTicketsCount(show: Show, performanceDate: LocalDate, queryDate: LocalDate): Future[(Int, Int)] = Future.successful(0, 0)
 
-  def orderTicket(show: Show, performanceDate: LocalDate, dbConn: PostgresProfile.backend.DatabaseDef): Future[(Int, Int)] = {
-    reserveTicket(show.title, performanceDate)(dbConn).map(ticketsLeft - 1)
+  def orderTicket(show: Show, queryDate: LocalDate, performanceDate: LocalDate, dbConn: PostgresProfile.backend.DatabaseDef): Future[Int] = {
+    reserveTicket(show.title, queryDate, performanceDate)(dbConn)
   }
 
-  def getReservedTicketsForDay(title: String, queryDate: LocalDate, performanceDate: LocalDate, dbConn: PostgresProfile.backend.DatabaseDef): Future[Int] =
-    super[DatabaseOps].getReservedTicketsForDay(title, queryDate, performanceDate)(dbConn)
+  override def getReservedTicketsForDay(title: String, queryDate: LocalDate, performanceDate: LocalDate, dbConn: PostgresProfile.backend.DatabaseDef): Future[Int] =
+    super[DatabaseOps].getReservedTicketsForDay(title, queryDate, performanceDate, dbConn)
 
 }

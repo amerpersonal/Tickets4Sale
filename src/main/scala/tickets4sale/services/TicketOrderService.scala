@@ -1,11 +1,14 @@
 package tickets4sale.services
 
 import org.joda.time.{Days, LocalDate}
+import slick.jdbc.PostgresProfile
 import tickets4sale.config.Config
 import tickets4sale.models.{Halls, PerformanceInventory, Show, TicketSaleState}
 import tickets4sale.repository.{ShowRepository, TicketOrderRepository}
 
 import scala.concurrent.{ExecutionContext, Future}
+import spray.json._
+import tickets4sale.serializers.ShowSerializer._
 
 trait TicketOrderService extends Config { this: TicketOrderRepository with ShowRepository =>
   def inventory(show: Show, queryDate: LocalDate, performanceDate: LocalDate)(implicit ec: ExecutionContext): Future[Option[PerformanceInventory]] = {
@@ -24,7 +27,7 @@ trait TicketOrderService extends Config { this: TicketOrderRepository with ShowR
         val ticketsAvailable = hall.map(_.ticketsAvailable(remainingDaysUntilPerformance) - numberOfOrderedTickets).getOrElse(0)
 
         val status = if (remainingDaysUntilPerformance > saleStartsBefore) TicketSaleState.SaleNotStarted
-        else if (remainingDaysUntilPerformance < saleEndsBefore && remainingDaysUntilPerformance > saleEndsBefore) TicketSaleState.OpenForSale
+        else if (remainingDaysUntilPerformance > saleEndsBefore && remainingDaysUntilPerformance < saleStartsBefore) TicketSaleState.OpenForSale
         else if (remainingDaysUntilPerformance > 0 && remainingDaysUntilPerformance < saleEndsBefore) TicketSaleState.SoldOut
         else TicketSaleState.InThePast
 
@@ -39,19 +42,30 @@ trait TicketOrderService extends Config { this: TicketOrderRepository with ShowR
     performanceDate.isAfter(show.openingDay.minusDays(1)) && performanceDate.isBefore(show.openingDay.plusDays(showDuration))
   }
 
-  def reserve(title: String, queryDate: LocalDate, performanceDate: LocalDate): Future[Int] = {
-    loadShows().find(title ==).map { show =>
+  def reserve(title: String, queryDate: LocalDate, performanceDate: LocalDate, dbConn: PostgresProfile.backend.DatabaseDef)(implicit ec: ExecutionContext): Future[Int] = {
+    println(loadShows().map(_.title.toString()).mkString(", "))
 
-      val runningForDays = Days.daysBetween(show.openingDay, queryDate).getDays + 1
+    println(s"shows: ${loadShows().find(_.title == title)}")
+    println(s"title: ${title}")
+    loadShows().find(_.title == title).map { show =>
+
+      val runningForDays = Days.daysBetween(show.openingDay, performanceDate).getDays + 1
+
+      println(s"xxx runningForDays: ${runningForDays}")
 
       Halls.performanceHall(runningForDays).map { hall =>
 
+        println(s"xxx hall: ${hall}")
 
-        getReservedTicketsForDay(title, queryDate, performanceDate).flatMap { reservedTickets =>
-          val ticketsLeftForToday = hall.ticketsAvailable(queryDate, performanceDate) - reservedTickets
+        getReservedTicketsForDay(title, queryDate, performanceDate, dbConn).flatMap { reservedTickets =>
+          println(s"xxx ta: ${hall.ticketsAvailable(queryDate, performanceDate)}, rt: ${reservedTickets}")
+          val ticketsLeftForQueryDate = hall.ticketsAvailable(queryDate, performanceDate) - reservedTickets
 
-          if (ticketsLeftForToday == 0) Future.failed(throw new Throwable("No tickets left for ordering on this day"))
-          else reserve()
+          if (ticketsLeftForQueryDate == 0) Future.failed(new Throwable("No tickets left for ordering on this day"))
+          else {
+            println("xxx order ticket")
+            orderTicket(show, queryDate, performanceDate, dbConn).map(ticketsLeftForQueryDate - _)
+          }
         }
 
       }.getOrElse {
@@ -62,5 +76,6 @@ trait TicketOrderService extends Config { this: TicketOrderRepository with ShowR
     }
 
   }
+
 
 }
