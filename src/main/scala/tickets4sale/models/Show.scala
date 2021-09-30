@@ -8,11 +8,14 @@ import tickets4sale.services.TicketOrderServiceFactory
 import tickets4sale.utils.DateUtils
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.io.Source
 import scala.util.{Failure, Try}
 
 case class Show(title: String, openingDay: LocalDate, genre: Genre)
 
 object Show {
+
+  val all = readAllFromCsv(Source.fromFile("shows.csv").getLines())._1
 
   def readFromLine(line: String): Try[Show] = Try {
     val properties = line.split("\\,").map(_.trim)

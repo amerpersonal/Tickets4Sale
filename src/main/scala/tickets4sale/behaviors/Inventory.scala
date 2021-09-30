@@ -1,15 +1,11 @@
 package tickets4sale.behaviors
 
-import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{ActorRef, Behavior}
 import org.joda.time.LocalDate
 import tickets4sale.behaviors.Inventory._
-import tickets4sale.database.DatabaseConnection
-import tickets4sale.database.dsl.DatabaseOps
 import tickets4sale.models.{PerformanceInventory, Show}
-import tickets4sale.repository.{ShowCSVRepository, ShowRepository, TicketOrderDatabaseRepository, TicketOrderRepository}
-import tickets4sale.services.{ShowsService, TicketOrderServiceFactory}
-
+import tickets4sale.services.TicketOrderServiceFactory
 import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
 import scala.util.{Failure, Success}
@@ -21,10 +17,15 @@ object Inventory {
 
   final case class ReserveTicket(name: String, queryDate: LocalDate, performanceDate: LocalDate, sender: ActorRef[ReservationStatus]) extends InventoryMessage
 
-  final case class FullPerformanceInventory(inventory: Map[String, Seq[PerformanceInventory]]) extends InventoryMessage
+  sealed trait Response
 
-  final case class ReservationStatus(title: String, performanceDate: LocalDate, reservationDate: LocalDate, ticketsLeft: Int, err: Option[Throwable] = None)
+  final case class FullPerformanceInventory(inventory: Map[String, Seq[PerformanceInventory]]) extends Response
 
+  sealed trait ReservationStatus extends Response
+
+  final case class ReservationSuccess(title: String, performanceDate: LocalDate, reservationDate: LocalDate, ticketsLeft: Int) extends ReservationStatus
+
+  final case class ReservationFailure(err: Throwable) extends ReservationStatus
 }
 
 class Inventory { this: TicketOrderServiceFactory =>
@@ -37,11 +38,8 @@ class Inventory { this: TicketOrderServiceFactory =>
 
       message match {
         case CalculatePerformanceInventory(queryDate, performanceDate, sender) => {
-
-          val lines = Source.fromFile("shows.csv").getLines()
-          val (shows, failures) = Show.readAllFromCsv(lines)
-
-          totalInventory(queryDate, performanceDate, shows).onComplete {
+          println("got message")
+          ticketOrderService.totalInventory(queryDate, performanceDate).onComplete {
             case Success(inventory) => {
               sender ! FullPerformanceInventory(inventory)
             }
@@ -51,47 +49,17 @@ class Inventory { this: TicketOrderServiceFactory =>
           }
 
           Behaviors.same
-
-
         }
         case ReserveTicket(title, queryDate, performanceDate, sender) => {
           ticketOrderService.reserve(title, queryDate, performanceDate).onComplete {
-            case Success(ticketsLeft: Int) => {
-              sender ! ReservationStatus(title, performanceDate, queryDate, ticketsLeft)
-            }
-            case Failure(ex) => {
-              println("failed")
-              throw ex
-            }
+            case Success(ticketsLeft: Int) => sender ! ReservationSuccess(title, performanceDate, queryDate, ticketsLeft)
+            case Failure(ex) => sender ! ReservationFailure(ex)
           }
 
           Behaviors.same
-
-
         }
       }
     }
-
   }
-
-  def totalInventory(queryDate: LocalDate, performanceDate: LocalDate, shows: Seq[Show])(implicit ec: ExecutionContext): Future[Map[String, Seq[PerformanceInventory]]] = {
-    val showsByGenre = shows.groupBy(_.genre).map { case (genre, shows) =>
-      (genre.name, shows)
-    }
-
-    showsByGenre.map { case (genre, shows) =>
-      shows.map { s =>
-        ticketOrderService.inventory(s, queryDate, performanceDate)
-      }
-    }
-
-    val calculations = shows.map(ticketOrderService.inventory(_, queryDate, performanceDate))
-
-    Future.sequence(calculations).map { inventories =>
-      inventories.collect { case Some(inventory) => inventory }.groupBy(_.show.genre.name)
-    }
-
-  }
-
 
 }

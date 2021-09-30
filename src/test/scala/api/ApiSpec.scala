@@ -1,23 +1,18 @@
 package api
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
-import org.scalatest.matchers.should
-import org.scalatest.wordspec.AnyWordSpec
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
-import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import akka.util.Timeout
-import tickets4sale.api.{Api, Router}
-import tickets4sale.behaviors.Inventory
-import tickets4sale.models.PerformanceInventory
-import tickets4sale.repository.{ShowCSVRepository, TicketOrderDatabaseRepository}
-import tickets4sale.services.TicketOrderServiceFactory
+import org.scalatest.matchers.should
+import org.scalatest.wordspec.AnyWordSpec
 import spray.json._
-import tickets4sale.behaviors.Inventory.FullPerformanceInventory
+import tickets4sale.api.Router
+import tickets4sale.behaviors.Inventory
+import tickets4sale.repository.{ShowCSVRepository, TicketOrderDatabaseRepository}
 import tickets4sale.serializers.FullPerformanceInventorySerializers
-
+import tickets4sale.services.TicketOrderServiceFactory
 import scala.concurrent.duration._
 
 class ApiSpec extends AnyWordSpec with ScalatestRouteTest with should.Matchers {
@@ -28,7 +23,6 @@ class ApiSpec extends AnyWordSpec with ScalatestRouteTest with should.Matchers {
 
   implicit def default(implicit system: akka.actor.ActorSystem) = RouteTestTimeout(40.seconds)
 
-
   implicit val as: akka.actor.typed.ActorSystem[Nothing] = system.toTyped
 
   val inventory = new Inventory() with TicketOrderServiceFactory with TicketOrderDatabaseRepository with ShowCSVRepository
@@ -36,8 +30,6 @@ class ApiSpec extends AnyWordSpec with ScalatestRouteTest with should.Matchers {
   val inventoryActor = testKit.spawn(inventory.apply(), name = "InventoryActor")
 
   val router = new Router(inventoryActor)
-
-
 
 
   "return success on root GET request" in {

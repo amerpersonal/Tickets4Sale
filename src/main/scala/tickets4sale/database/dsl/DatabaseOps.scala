@@ -6,10 +6,13 @@ import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
 import slick.lifted.Tag
 import com.github.tototoshi.slick.PostgresJodaSupport._
+import tickets4sale.database.DatabaseConnection
+
 import scala.concurrent.Future
 
 
 trait DatabaseOps {
+  import scala.concurrent.ExecutionContext.Implicits.global
 
   case class Order(id: Long, title: String, reservationDate: LocalDate, performanceDate: LocalDate)
 
@@ -25,22 +28,36 @@ trait DatabaseOps {
   val ordersTable = TableQuery[OrdersTable]
 
 
-  def reserveTicket(title: String, queryDate: LocalDate, performanceDate: LocalDate)(dbConn: PostgresProfile.backend.DatabaseDef): Future[Int] = {
+  def reserveTicket(title: String, queryDate: LocalDate, performanceDate: LocalDate): Future[Int] = {
     val query = ordersTable += Order(0L, title, queryDate, performanceDate)
 
-    dbConn.run(query)
+    DatabaseConnection.connection.run(query)
   }
 
-  def getReservedTicketsForDay(title: String, queryDate: LocalDate, performanceDate: LocalDate)(dbConn: PostgresProfile.backend.DatabaseDef): Future[Int] = {
+  def getReservedTicketsForDay(title: String, queryDate: LocalDate, performanceDate: LocalDate): Future[Int] = {
     val query = ordersTable.filter(order => order.title === title && order.performanceDate === performanceDate && order.reservationDate === queryDate).size
 
-    dbConn.run[Int](query.result)
+    DatabaseConnection.connection.run[Int](query.result)
   }
 
-  def getReservedTickets(title: String, queryDate: LocalDate, performanceDate: LocalDate)(dbConn: PostgresProfile.backend.DatabaseDef): Future[Int] = {
-    val query = ordersTable.filter(order => order.title === title && order.performanceDate === performanceDate && order.reservationDate === queryDate).size
+  def getReservedTickets(title: String, queryDate: LocalDate, performanceDate: LocalDate): Future[(Int, Int)] = {
+//    val query = ordersTable.filter(order => order.title === title && order.performanceDate === performanceDate && order.reservationDate === queryDate).size
 
-    dbConn.run[Int](query.result)
+
+    val query =
+      sql"""select * from tickets.get_reserved_tickets(
+                           p_title := #${escapeString(title)},
+                           p_query_date := '#${queryDate.toString}',
+                           p_performance_date := '#${performanceDate.toString()}'
+                          )""".as[(Int, Int)]
+
+    println(s"query: ${query.statements}")
+
+    DatabaseConnection.connection.run(query).map(_.head)
+  }
+
+  private def escapeString(str: String): String = {
+    "$$" + str + "$$"
   }
 }
 

@@ -16,7 +16,7 @@ trait TicketOrderRepository {
     * @param queryDate - date when tickets are ordered
     * @return
     */
-  def getOrderedTicketsCount(show: Show, performanceDate: LocalDate, queryDate: LocalDate): Future[(Int, Int)]
+  def getReservedTickets(show: Show, queryDate: LocalDate, performanceDate: LocalDate): Future[(Int, Int)]
 
   /**
     * Orders a ticket for show on a specific performance date. If there are no more tickets left, it will return failed Future
@@ -24,16 +24,16 @@ trait TicketOrderRepository {
     * @param performanceDate
     * @return tuple containing of (number of tickets ordered on a current day for a specific performance, total number of tickets ordered for performance)
     */
-  def orderTicket(show: Show, queryDate: LocalDate, performanceDate: LocalDate): Future[Int]
+  def reserveTicket(show: Show, queryDate: LocalDate, performanceDate: LocalDate): Future[Int]
 
 
   /**
     * Get a number of tickets reserved on a specific day for a specific performance
-    * @param title
+    * @param show
     * @param queryDate
     * @param performanceDate
     * @return
     */
-  def getReservedTicketsForDay(title: String, queryDate: LocalDate, performanceDate: LocalDate): Future[Int]
+  def getReservedTicketsForDay(show: Show, queryDate: LocalDate, performanceDate: LocalDate): Future[Int]
 
 }

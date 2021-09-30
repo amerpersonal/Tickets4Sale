@@ -57,7 +57,7 @@ object Runner extends Config with DatabaseOps {
     val conn = Database.forURL(dbUrl(), dbUsername, dbPassword, null, "org.postgresql.Driver")
 
 
-    reserveTicket("cats", LocalDate.now(), LocalDate.now().plusDays(10))(conn).onComplete {
+    reserveTicket("cats", LocalDate.now(), LocalDate.now().plusDays(10)).onComplete {
       case Success(r) => println(s"xxx r: ${r}")
       case Failure(ex: Throwable) => println(s"error: ${ex.getMessage}")
     }

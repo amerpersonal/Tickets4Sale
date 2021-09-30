@@ -1,46 +1,44 @@
 package tickets4sale.services
 
-import org.joda.time.{Days, LocalDate}
-import slick.jdbc.PostgresProfile
+import org.joda.time.LocalDate
 import tickets4sale.config.Config
 import tickets4sale.models.{Halls, PerformanceInventory, Show, TicketSaleState}
 import tickets4sale.repository.{ShowRepository, TicketOrderRepository}
-
 import scala.concurrent.{ExecutionContext, Future}
-import spray.json._
-import tickets4sale.serializers.ShowSerializer._
 
-trait TicketOrderServiceFactory extends Config { this: TicketOrderRepository with ShowRepository =>
-
+trait TicketOrderServiceFactory extends Config {
+  this: TicketOrderRepository with ShowRepository =>
   val ticketOrderService: TicketOrderService
 
   class TicketOrderService {
+    def getClearInventory(show: Show, queryDate: LocalDate, performanceDate: LocalDate)(implicit ec: ExecutionContext): Option[PerformanceInventory] = {
+      for {
+        hall <- Halls.performanceHall(show, performanceDate)
+      } yield PerformanceInventory(
+        show,
+        hall.ticketsLeft(queryDate, performanceDate),
+        hall.ticketsAvailable(queryDate, performanceDate),
+        TicketSaleState.ticketState(queryDate, performanceDate)
+      )
+
+    }
 
     def inventory(show: Show, queryDate: LocalDate, performanceDate: LocalDate)(implicit ec: ExecutionContext): Future[Option[PerformanceInventory]] = {
+      for {
+        clearInventory <- Future.successful(getClearInventory(show, queryDate, performanceDate))
+        reservedTicketsCount <- if(clearInventory.nonEmpty) getReservedTickets(show, queryDate, performanceDate) else Future.successful((0, 0))
 
-      if (isRunning(show, performanceDate)) {
-
-        val remainingDaysUntilPerformance = Days.daysBetween(queryDate, performanceDate).getDays + 1
-
-        val showRunningForDays = Days.daysBetween(show.openingDay, performanceDate).getDays + 1
-
-
-        getOrderedTicketsCount(show, performanceDate, queryDate).map { case (numberOfOrderedTickets, numberOfOrderedTicketOnDay) =>
-
-          val hall = Halls.performanceHall(showRunningForDays)
-          val ticketsLeft = hall.map(_.ticketsLeft(remainingDaysUntilPerformance) - numberOfOrderedTicketOnDay).getOrElse(0)
-          val ticketsAvailable = hall.map(_.ticketsAvailable(remainingDaysUntilPerformance) - numberOfOrderedTickets).getOrElse(0)
-
-          val status = if (remainingDaysUntilPerformance > saleStartsBefore) TicketSaleState.SaleNotStarted
-          else if (remainingDaysUntilPerformance > saleEndsBefore && remainingDaysUntilPerformance < saleStartsBefore) TicketSaleState.OpenForSale
-          else if (remainingDaysUntilPerformance > 0 && remainingDaysUntilPerformance < saleEndsBefore) TicketSaleState.SoldOut
-          else TicketSaleState.InThePast
-
-          Some(PerformanceInventory(show, ticketsLeft, ticketsAvailable, status))
-
-        }
+      } yield clearInventory.map { inv =>
+        inv.copy(ticketsLeft = inv.ticketsLeft - reservedTicketsCount._2, ticketsAvailable = inv.ticketsAvailable - reservedTicketsCount._1)
       }
-      else Future.successful(None)
+    }
+
+    def totalInventory(queryDate: LocalDate, performanceDate: LocalDate)(implicit ec: ExecutionContext): Future[Map[String, Seq[PerformanceInventory]]] = {
+      val calculations = Show.all.map(inventory(_, queryDate, performanceDate))
+
+      Future.sequence(calculations).map { inventories =>
+        inventories.collect { case Some(inventory) => inventory }.groupBy(_.show.genre.name)
+      }
     }
 
     def isRunning(show: Show, performanceDate: LocalDate): Boolean = {
@@ -48,36 +46,36 @@ trait TicketOrderServiceFactory extends Config { this: TicketOrderRepository wit
     }
 
     def reserve(title: String, queryDate: LocalDate, performanceDate: LocalDate)(implicit ec: ExecutionContext): Future[Int] = {
-      loadShows().find(_.title == title).map { show =>
+      //      Show.all.find(_.title == title).map { show =>
+      //
+      //        Halls.performanceHall(show, performanceDate).map { hall =>
+      //
+      //          println(s"xxx hall: ${hall}")
+      //
+      //          getReservedTicketsForDay(title, queryDate, performanceDate).flatMap { reservedTickets =>
+      //            println(s"xxx ta: ${hall.ticketsAvailable(queryDate, performanceDate)}, rt: ${reservedTickets}")
+      //            val ticketsLeftForQueryDate = hall.ticketsAvailable(queryDate, performanceDate) - reservedTickets
+      //
+      //            if (ticketsLeftForQueryDate == 0) Future.failed(new Throwable("No tickets left for ordering on this day"))
+      //            else {
+      //              println("xxx order ticket")
+      //              orderTicket(show, queryDate, performanceDate).map(ticketsLeftForQueryDate - _)
+      //            }
+      //          }
+      //
+      //        }.getOrElse {
+      //          Future.failed(new Throwable("Show not running"))
+      //        }
+      //      }.getOrElse {
+      //        Future.failed(new Throwable("Invalid show"))
+      //      }
 
-        val runningForDays = Days.daysBetween(show.openingDay, performanceDate).getDays + 1
+      for {
+        show <- Show.all.find(_.title == title).map(Future.successful).getOrElse(Future.failed(new Throwable("Show not exists")))
+        performanceInventory <- inventory(show, queryDate, performanceDate).map(_.get)
 
-        println(s"xxx runningForDays: ${runningForDays}")
-
-        Halls.performanceHall(runningForDays).map { hall =>
-
-          println(s"xxx hall: ${hall}")
-
-          getReservedTicketsForDay(title, queryDate, performanceDate).flatMap { reservedTickets =>
-            println(s"xxx ta: ${hall.ticketsAvailable(queryDate, performanceDate)}, rt: ${reservedTickets}")
-            val ticketsLeftForQueryDate = hall.ticketsAvailable(queryDate, performanceDate) - reservedTickets
-
-            if (ticketsLeftForQueryDate == 0) Future.failed(new Throwable("No tickets left for ordering on this day"))
-            else {
-              println("xxx order ticket")
-              orderTicket(show, queryDate, performanceDate).map(ticketsLeftForQueryDate - _)
-            }
-          }
-
-        }.getOrElse {
-          Future.failed(new Throwable("Show not running"))
-        }
-      }.getOrElse {
-        Future.failed(new Throwable("Invalid show"))
-      }
-
+        result <- if (performanceInventory.ticketsAvailable == 0) Future.failed(new Throwable("No tickets left for ordering on this day")) else reserveTicket(show, queryDate, performanceDate)
+      } yield performanceInventory.ticketsAvailable - result
     }
   }
-
-
 }

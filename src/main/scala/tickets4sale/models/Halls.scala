@@ -24,12 +24,16 @@ object Halls {
 
     def duration: Int = dayEnd - dayStart
 
-    def isShowRunCurrently(showRunningForDays: Int): Boolean = {
+    def isShowRunCurrently(show: Show, performanceDate: LocalDate): Boolean = {
+      val showRunningForDays = Days.daysBetween(show.openingDay, performanceDate).getDays + 1
+
       (showRunningForDays < 0 && dayStart == 0) || (showRunningForDays >= dayStart && showRunningForDays <= dayEnd)
     }
 
 
-    def ticketsLeft(remainingDaysUntilPerformance: Int): Int = {
+    def ticketsLeft(queryDate: LocalDate, performanceDate: LocalDate): Int = {
+      val remainingDaysUntilPerformance = Days.daysBetween(queryDate, performanceDate).getDays + 1
+
       if (remainingDaysUntilPerformance < saleEndsBefore) 0
       else if (remainingDaysUntilPerformance  > saleStartsBefore) capacity
       else (remainingDaysUntilPerformance - saleEndsBefore) * ticketsPerDay
@@ -41,11 +45,6 @@ object Halls {
       if (remainingDaysUntilPerformance < saleEndsBefore || remainingDaysUntilPerformance > saleStartsBefore) 0
       else ticketsPerDay
 
-    }
-
-    def ticketsAvailable(remainingDaysUntilPerformance: Int): Int = {
-      if (remainingDaysUntilPerformance < saleEndsBefore || remainingDaysUntilPerformance > saleStartsBefore) 0
-      else ticketsPerDay
     }
   }
 
@@ -66,8 +65,8 @@ object Halls {
 
   val halls = List(Big, Small)
 
-  def performanceHall(showRunningForDays: Int): Option[Hall] = {
-    halls.find(_.isShowRunCurrently(showRunningForDays))
+  def performanceHall(show: Show, performanceDate: LocalDate): Option[Hall] = {
+    halls.find(_.isShowRunCurrently(show, performanceDate))
   }
 
 }

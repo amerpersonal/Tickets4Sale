@@ -21,5 +21,8 @@ trait Config {
 
   val dbUseSsl = config.getBoolean("tickets4sale.database.use-ssl")
 
+  val serverHost = config.getString("akka.http.server.interface")
+  val serverPort = config.getInt("akka.http.server.port")
+
 
 }

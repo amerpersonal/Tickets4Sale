@@ -1,61 +1,53 @@
 package tickets4sale.api
 
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.scaladsl.Behaviors
 import akka.http.scaladsl.Http
 import akka.util.Timeout
 import tickets4sale.behaviors.Inventory
-
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
-import akka.actor.typed.scaladsl.adapter._
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.server.RouteResult
-import akka.stream.Materializer
-import RouteResult._
-import akka.actor.ClassicActorSystemProvider
+import tickets4sale.config.Config
 import tickets4sale.repository.{ShowCSVRepository, TicketOrderDatabaseRepository}
 import tickets4sale.services.TicketOrderServiceFactory
 
-object WebServer extends App with Api {
-  val serverInterface = "0.0.0.0"
-  val serverPort = 8080
+import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
-  implicit val timeout  = Timeout(3.seconds)
+object WebServer extends Validators with Config {
+  def main(args: Array[String]): Unit = {
+    val guardian = Behaviors.setup[Nothing] { context =>
 
+//      val inventoryActor = context.spawn(Inventory(), name = "InventoryActor")
 
-//  implicit val mat = Materializer.matFromSystem(new ClassicActorSystemProvider {
-//    override def classicSystem: ActorSystem = actorSystem
-//  })
+      val inventory = new Inventory() with TicketOrderServiceFactory with TicketOrderDatabaseRepository with ShowCSVRepository
+      val inventoryActor = context.spawn(inventory.apply(), name = "InventoryActor")
 
-//  implicit val actorSystem: ActorSystem[Inventory.CalculatePerformanceInventory] = ActorSystem(Inventory(), "inventory")
+      context.watch(inventoryActor)
 
+      implicit val actorSystem: ActorSystem[_] = context.system
 
-  val system = akka.actor.ActorSystem("ClassicToTypedSystem")
-  implicit val materializer = Materializer(system)
+      implicit val ec = context.system.executionContext
 
-  val as: ActorSystem[_] = system.toTyped
+      implicit val timeout = Timeout(4.seconds)
 
+      val router = new Router(inventoryActor)
 
-  implicit val provider = new ClassicActorSystemProvider {
-    override def classicSystem: akka.actor.ActorSystem = system
+      val futureBinding = Http(context.system).newServerAt(serverHost, serverPort).bind(router.routes)
+
+      futureBinding.onComplete {
+        case Success(binding) =>
+          val address = binding.localAddress
+          actorSystem.log.info("Server online at http://{}:{}/",
+            address.getHostString,
+            address.getPort)
+        case Failure(ex) =>
+          actorSystem.log.error("Failed to bind HTTP endpoint, terminating system", ex)
+          actorSystem.terminate()
+      }
+
+      Behaviors.empty
+    }
+
+    val system = ActorSystem[Nothing](guardian, "Guardian")
+
   }
-//
-//
-//
-  implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
-//
-//
-  val inventory = new Inventory() with TicketOrderServiceFactory with TicketOrderDatabaseRepository with ShowCSVRepository
-  val inventoryActor: ActorRef[Inventory.InventoryMessage] = as.systemActorOf(inventory.apply(), "inventory")
-
-
-  println(s"Bounding HTTP server to ${serverInterface}: ${serverPort}")
-
-
-  //RouteResult.routeToFunction()
-
-//  Http(as).newServerAt(serverInterface, serverPort).bind(routes)
-
-
-
 }
