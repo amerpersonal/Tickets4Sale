@@ -35,6 +35,7 @@ object Genres {
 
   val genres = getGenres()
 
+  println(s"genres: ${genres}")
   def fromName(name: String): Option[Genre] = genres.find(_.name == name)
 
 

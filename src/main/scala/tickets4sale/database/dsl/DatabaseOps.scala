@@ -25,19 +25,19 @@ trait DatabaseOps {
   val ordersTable = TableQuery[OrdersTable]
 
 
-  def reserveTicket(title: String, queryDate: LocalDate, performanceDate: LocalDate)(implicit dbConn: PostgresProfile.backend.DatabaseDef): Future[Int] = {
+  def reserveTicket(title: String, queryDate: LocalDate, performanceDate: LocalDate)(dbConn: PostgresProfile.backend.DatabaseDef): Future[Int] = {
     val query = ordersTable += Order(0L, title, queryDate, performanceDate)
 
     dbConn.run(query)
   }
 
-  def getReservedTicketsForDay(title: String, queryDate: LocalDate, performanceDate: LocalDate, dbConn: PostgresProfile.backend.DatabaseDef): Future[Int] = {
+  def getReservedTicketsForDay(title: String, queryDate: LocalDate, performanceDate: LocalDate)(dbConn: PostgresProfile.backend.DatabaseDef): Future[Int] = {
     val query = ordersTable.filter(order => order.title === title && order.performanceDate === performanceDate && order.reservationDate === queryDate).size
 
     dbConn.run[Int](query.result)
   }
 
-  def getReservedTickets(title: String, queryDate: LocalDate, performanceDate: LocalDate)(implicit dbConn: PostgresProfile.backend.DatabaseDef): Future[Int] = {
+  def getReservedTickets(title: String, queryDate: LocalDate, performanceDate: LocalDate)(dbConn: PostgresProfile.backend.DatabaseDef): Future[Int] = {
     val query = ordersTable.filter(order => order.title === title && order.performanceDate === performanceDate && order.reservationDate === queryDate).size
 
     dbConn.run[Int](query.result)

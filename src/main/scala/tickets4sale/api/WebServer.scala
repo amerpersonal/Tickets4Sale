@@ -1,101 +1,61 @@
 package tickets4sale.api
 
-import akka.actor.typed.{ActorRef, ActorSystem, SupervisorStrategy}
-import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.server.Directives._
-import tickets4sale.behaviors.Inventory
-import tickets4sale.behaviors.Inventory._
-import akka.actor.typed.scaladsl.AskPattern._
-
-import scala.concurrent.duration._
-import scala.concurrent.Future
-import akka.http.scaladsl.server
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Route
 import akka.util.Timeout
-import org.joda.time.{DateTimeZone, LocalDate}
-import spray.json.{JsObject, JsString}
-import tickets4sale.models.requests.ReserveTicketRequest
+import tickets4sale.behaviors.Inventory
 
-import scala.util.{Failure, Success}
-import tickets4sale.serializers.requests.ReserveTicketRequestSerializer._
-import tickets4sale.serializers.ReservationCompletedSerializer._
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
+import akka.actor.typed.scaladsl.adapter._
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.server.RouteResult
+import akka.stream.Materializer
+import RouteResult._
+import akka.actor.ClassicActorSystemProvider
+import tickets4sale.repository.{ShowCSVRepository, TicketOrderDatabaseRepository}
+import tickets4sale.services.TicketOrderServiceFactory
 
-object WebServer extends Validators {
-  def main(args: Array[String]): Unit = {
-    val guardian = Behaviors.setup[Nothing] { context =>
-      import tickets4sale.serializers.FullPerformanceInventorySerializers._
+object WebServer extends App with Api {
+  val serverInterface = "0.0.0.0"
+  val serverPort = 8080
 
-      val inventoryActor = context.spawn(Inventory(), name = "InventoryActor")
-
-      context.watch(inventoryActor)
-
-
-      implicit val actorSystem: ActorSystem[_] = context.system
-
-      implicit val ec = context.system.executionContext
-
-      implicit val timeout = Timeout(4.seconds)
-
-      def executeAndShowResponse(request: Future[Any]): Route = {
-        onComplete(request) { response =>
-          response match {
-            case Success(r: ReservationCompleted) => complete(StatusCodes.OK, r)
-            case Success(ReservationFailed(err)) => complete(StatusCodes.BadRequest, JsObject("error" -> JsString(err.getMessage)))
-            case _ => complete(StatusCodes.InternalServerError, JsObject("error" -> JsString("Error executing request")))
-          }
-        }
-      }
-
-      val performanceInventoryRoute = get {
-        path("performance_inventory") {
-          validateInventoryDates("query_date", "performance_date") { case (queryDate, performanceDate) =>
-
-            val response: Future[FullPerformanceInventory] = inventoryActor.ask(CalculatePerformanceInventory(queryDate, performanceDate, _))
-
-            complete(response)
-          }
-        }
-      }
+  implicit val timeout  = Timeout(3.seconds)
 
 
-      val orderTicketRoute = post {
-        path("show" / "reserve_ticket") {
-          entity(as[ReserveTicketRequest]) { request =>
+//  implicit val mat = Materializer.matFromSystem(new ClassicActorSystemProvider {
+//    override def classicSystem: ActorSystem = actorSystem
+//  })
 
-            val r: Future[InventoryMessage] = inventoryActor.ask(ReserveTicket(request.title, request.queryDate.getOrElse(LocalDate.now(DateTimeZone.UTC)), request.performanceDate, _))
-
-            executeAndShowResponse(r)
-
-          }
-        }
-      }
+//  implicit val actorSystem: ActorSystem[Inventory.CalculatePerformanceInventory] = ActorSystem(Inventory(), "inventory")
 
 
-      val routes = pathPrefix("api" / "v1") {
-        performanceInventoryRoute ~ orderTicketRoute
-      }
+  val system = akka.actor.ActorSystem("ClassicToTypedSystem")
+  implicit val materializer = Materializer(system)
+
+  val as: ActorSystem[_] = system.toTyped
 
 
-      val server = Http(context.system).newServerAt("0.0.0.0", 8080).bind(routes)
-
-      server.onComplete {
-        case Success(binding) =>
-          val address = binding.localAddress
-          actorSystem.log.info("Server online at http://{}:{}/",
-            address.getHostString,
-            address.getPort)
-        case Failure(ex) =>
-          actorSystem.log.error("Failed to bind HTTP endpoint, terminating system", ex)
-          actorSystem.terminate()
-      }
-
-      Behaviors.same
-    }
-
-    val system = ActorSystem[Nothing](guardian, "Guardian")
-
+  implicit val provider = new ClassicActorSystemProvider {
+    override def classicSystem: akka.actor.ActorSystem = system
   }
+//
+//
+//
+  implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+//
+//
+  val inventory = new Inventory() with TicketOrderServiceFactory with TicketOrderDatabaseRepository with ShowCSVRepository
+  val inventoryActor: ActorRef[Inventory.InventoryMessage] = as.systemActorOf(inventory.apply(), "inventory")
+
+
+  println(s"Bounding HTTP server to ${serverInterface}: ${serverPort}")
+
+
+  //RouteResult.routeToFunction()
+
+//  Http(as).newServerAt(serverInterface, serverPort).bind(routes)
+
+
+
 }
