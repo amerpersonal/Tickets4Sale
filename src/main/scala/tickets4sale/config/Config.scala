@@ -24,5 +24,5 @@ trait Config {
   val serverHost = config.getString("akka.http.server.interface")
   val serverPort = config.getInt("akka.http.server.port")
 
-
+  val csvPath = config.getString("tickets4sale.csv-file-path")
 }

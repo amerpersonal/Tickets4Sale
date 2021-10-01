@@ -36,4 +36,13 @@ trait TicketOrderRepository {
     */
   def getReservedTicketsForDay(show: Show, queryDate: LocalDate, performanceDate: LocalDate): Future[Int]
 
+
+  /**
+    * Get a number of reserved ticker per show for a specific performance date, both total and only those reserved on queryDate
+    * @param queryDate
+    * @param performanceDay
+    * @return map, containing number of tickets reserved for each performance in format (number of tickets reserved on query date, total number of tickets reserved)
+    */
+  def getReservedTicketsBulk(queryDate: LocalDate, performanceDay: LocalDate): Future[Map[String, (Int, Int)]]
+
 }

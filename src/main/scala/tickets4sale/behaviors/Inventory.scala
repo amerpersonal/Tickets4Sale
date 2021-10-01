@@ -38,14 +38,9 @@ class Inventory { this: TicketOrderServiceFactory =>
 
       message match {
         case CalculatePerformanceInventory(queryDate, performanceDate, sender) => {
-          println("got message")
           ticketOrderService.totalInventory(queryDate, performanceDate).onComplete {
-            case Success(inventory) => {
-              sender ! FullPerformanceInventory(inventory)
-            }
-            case Failure(ex) => {
-              context.log.error(s"Error on getting performance inventory: ${ex.getMessage}")
-            }
+            case Success(inventory) => sender ! FullPerformanceInventory(inventory)
+            case Failure(ex) => context.log.error(s"Error on getting performance inventory: ${ex.getMessage}")
           }
 
           Behaviors.same
@@ -61,5 +56,4 @@ class Inventory { this: TicketOrderServiceFactory =>
       }
     }
   }
-
 }

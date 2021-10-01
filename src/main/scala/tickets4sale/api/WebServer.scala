@@ -6,7 +6,7 @@ import akka.http.scaladsl.Http
 import akka.util.Timeout
 import tickets4sale.behaviors.Inventory
 import tickets4sale.config.Config
-import tickets4sale.repository.{ShowCSVRepository, TicketOrderDatabaseRepository}
+import tickets4sale.repository.TicketOrderDatabaseRepository
 import tickets4sale.services.TicketOrderServiceFactory
 
 import scala.concurrent.duration._
@@ -18,7 +18,7 @@ object WebServer extends Validators with Config {
 
 //      val inventoryActor = context.spawn(Inventory(), name = "InventoryActor")
 
-      val inventory = new Inventory() with TicketOrderServiceFactory with TicketOrderDatabaseRepository with ShowCSVRepository
+      val inventory = new Inventory() with TicketOrderServiceFactory with TicketOrderDatabaseRepository
       val inventoryActor = context.spawn(inventory.apply(), name = "InventoryActor")
 
       context.watch(inventoryActor)

@@ -22,6 +22,8 @@ import slick.jdbc.PostgresProfile
 import org.postgresql.PGConnection
 import slick.jdbc.PostgresProfile.api._
 import tickets4sale.database.dsl.DatabaseOps
+import tickets4sale.repository.TicketOrderDatabaseRepository
+import tickets4sale.services.TicketOrderServiceFactory
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -54,10 +56,15 @@ object Runner extends Config with DatabaseOps {
 //    println(ti.toJson.toString())
 
 
-    val conn = Database.forURL(dbUrl(), dbUsername, dbPassword, null, "org.postgresql.Driver")
 
+//    reserveTicket("cats", LocalDate.now(), LocalDate.now().plusDays(10)).onComplete {
+//      case Success(r) => println(s"xxx r: ${r}")
+//      case Failure(ex: Throwable) => println(s"error: ${ex.getMessage}")
+//    }
 
-    reserveTicket("cats", LocalDate.now(), LocalDate.now().plusDays(10)).onComplete {
+    val repo = new TicketOrderDatabaseRepository {}
+
+    repo.getReservedTicketsBulk(DateUtils.parseDate("2021-11-25"), DateUtils.parseDate("2021-12-05")).onComplete {
       case Success(r) => println(s"xxx r: ${r}")
       case Failure(ex: Throwable) => println(s"error: ${ex.getMessage}")
     }

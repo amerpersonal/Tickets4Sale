@@ -3,11 +3,11 @@ package tickets4sale.services
 import org.joda.time.LocalDate
 import tickets4sale.config.Config
 import tickets4sale.models.{Halls, PerformanceInventory, Show, TicketSaleState}
-import tickets4sale.repository.{ShowRepository, TicketOrderRepository}
+import tickets4sale.repository.TicketOrderRepository
 import scala.concurrent.{ExecutionContext, Future}
 
 trait TicketOrderServiceFactory extends Config {
-  this: TicketOrderRepository with ShowRepository =>
+  this: TicketOrderRepository =>
   val ticketOrderService: TicketOrderService
 
   class TicketOrderService {
@@ -34,11 +34,23 @@ trait TicketOrderServiceFactory extends Config {
     }
 
     def totalInventory(queryDate: LocalDate, performanceDate: LocalDate)(implicit ec: ExecutionContext): Future[Map[String, Seq[PerformanceInventory]]] = {
-      val calculations = Show.all.map(inventory(_, queryDate, performanceDate))
+//      val calculations = Show.all.map(inventory(_, queryDate, performanceDate))
+//
+//      Future.sequence(calculations).map { inventories =>
+//        inventories.collect { case Some(inventory) => inventory }.groupBy(_.show.genre.name)
+//      }
 
-      Future.sequence(calculations).map { inventories =>
-        inventories.collect { case Some(inventory) => inventory }.groupBy(_.show.genre.name)
+
+      val clearInventories = Show.all.map(getClearInventory(_, queryDate, performanceDate))
+
+      getReservedTicketsBulk(queryDate, performanceDate).map { reservations =>
+        clearInventories.collect { case Some(inventory) =>
+          inventory
+        }.map { inv =>
+          inv.copy(ticketsAvailable = inv.ticketsAvailable - reservations.get(inv.show.title).map(_._1).getOrElse(0), ticketsLeft = inv.ticketsLeft - reservations.get(inv.show.title).map(_._2).getOrElse(0))
+        }.groupBy(_.show.genre.name)
       }
+
     }
 
     def isRunning(show: Show, performanceDate: LocalDate): Boolean = {

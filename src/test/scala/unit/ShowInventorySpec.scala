@@ -4,7 +4,7 @@ import org.joda.time.{DateTimeZone, LocalDate}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import tickets4sale.models.{Genres, PerformanceInventory, Show, TicketSaleState}
-import tickets4sale.repository.{ShowCSVRepository, TicketOrderEmptyRepository}
+import tickets4sale.repository.TicketOrderEmptyRepository
 import tickets4sale.services.TicketOrderServiceFactory
 
 class ShowInventorySpec extends AnyFlatSpec with Matchers {
@@ -12,7 +12,7 @@ class ShowInventorySpec extends AnyFlatSpec with Matchers {
 
   implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
 
-  val serviceFactory = new TicketOrderServiceFactory with TicketOrderEmptyRepository with ShowCSVRepository {
+  val serviceFactory = new TicketOrderServiceFactory with TicketOrderEmptyRepository {
     val ticketOrderService = new TicketOrderService()
   }
 

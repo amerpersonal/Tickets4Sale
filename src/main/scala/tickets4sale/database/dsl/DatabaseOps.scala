@@ -41,9 +41,6 @@ trait DatabaseOps {
   }
 
   def getReservedTickets(title: String, queryDate: LocalDate, performanceDate: LocalDate): Future[(Int, Int)] = {
-//    val query = ordersTable.filter(order => order.title === title && order.performanceDate === performanceDate && order.reservationDate === queryDate).size
-
-
     val query =
       sql"""select * from tickets.get_reserved_tickets(
                            p_title := #${escapeString(title)},
@@ -51,9 +48,27 @@ trait DatabaseOps {
                            p_performance_date := '#${performanceDate.toString()}'
                           )""".as[(Int, Int)]
 
-    println(s"query: ${query.statements}")
-
     DatabaseConnection.connection.run(query).map(_.head)
+  }
+
+
+  def getReservedTicketsBulkOnDay(queryDate: LocalDate, performanceDate: LocalDate): Future[Map[String, Int]] = {
+    val query =
+      sql"""select * from tickets.get_reserved_tickets_bulk_on_day(
+                           p_query_date := '#${queryDate.toString}',
+                           p_performance_date := '#${performanceDate.toString()}'
+                          )""".as[(String, Int)]
+
+    DatabaseConnection.connection.run(query).map(_.toMap)
+  }
+
+  def getReservedTicketsBulkTotal(performanceDate: LocalDate): Future[Map[String, Int]] = {
+    val query =
+      sql"""select * from tickets.get_reserved_tickets_bulk(
+                           p_performance_date := '#${performanceDate.toString()}'
+                          )""".as[(String, Int)]
+
+    DatabaseConnection.connection.run(query).map(_.toMap)
   }
 
   private def escapeString(str: String): String = {

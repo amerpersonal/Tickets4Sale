@@ -13,4 +13,6 @@ trait TicketOrderEmptyRepository extends TicketOrderRepository {
 
   def getReservedTicketsForDay(show: Show, queryDate: LocalDate, performanceDate: LocalDate): Future[Int] = Future.successful(0)
 
+  def getReservedTicketsBulk(queryDate: LocalDate, performanceDay: LocalDate): Future[Map[String, (Int, Int)]] = Future.successful(Map.empty)
+
 }

@@ -10,7 +10,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import spray.json._
 import tickets4sale.api.Router
 import tickets4sale.behaviors.Inventory
-import tickets4sale.repository.{ShowCSVRepository, TicketOrderDatabaseRepository}
+import tickets4sale.repository.TicketOrderDatabaseRepository
 import tickets4sale.serializers.FullPerformanceInventorySerializers
 import tickets4sale.services.TicketOrderServiceFactory
 import scala.concurrent.duration._
@@ -25,7 +25,7 @@ class ApiSpec extends AnyWordSpec with ScalatestRouteTest with should.Matchers {
 
   implicit val as: akka.actor.typed.ActorSystem[Nothing] = system.toTyped
 
-  val inventory = new Inventory() with TicketOrderServiceFactory with TicketOrderDatabaseRepository with ShowCSVRepository
+  val inventory = new Inventory() with TicketOrderServiceFactory with TicketOrderDatabaseRepository
 
   val inventoryActor = testKit.spawn(inventory.apply(), name = "InventoryActor")
 

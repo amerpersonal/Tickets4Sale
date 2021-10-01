@@ -14,15 +14,14 @@ CREATE TABLE IF NOT EXISTS tickets.orders (
   performance_date date NOT NULL
 );
 
+DROP FUNCTION IF EXISTS tickets.get_reserved_tickets(varchar(32), date, date);
+
 DROP TYPE IF EXISTS tickets.reservation_details;
 
 CREATE TYPE tickets.reservation_details AS (
 	tickets_reserved_count_query_date bigint,
 	tickets_reserved_count_total bigint
 );
-
-
-DROP FUNCTION IF EXISTS tickets.get_reserved_tickets(varchar(32), date, date);
 
 CREATE OR REPLACE FUNCTION tickets.get_reserved_tickets(p_title varchar(32), p_query_date date, p_performance_date date)
 RETURNS tickets.reservation_details
@@ -43,4 +42,44 @@ BEGIN
 	RETURN reserved_count;
 END;
 $$;
-END
+
+
+DROP FUNCTION IF EXISTS tickets.get_reserved_tickets_bulk(date);
+
+DROP FUNCTION IF EXISTS tickets.get_reserved_tickets_bulk_on_day(date, date);
+
+DROP TYPE IF EXISTS tickets.tickets_reserved;
+
+CREATE TYPE tickets.tickets_reserved AS (
+	show_title varchar(64),
+	tickets_reserved_count bigint
+);
+
+
+-- function for creating get reserved tickets count on a specific performance day for each show
+CREATE OR REPLACE FUNCTION tickets.get_reserved_tickets_bulk(p_performance_date date)
+RETURNS SETOF tickets.tickets_reserved
+ LANGUAGE plpgsql
+AS $$
+BEGIN
+	RETURN QUERY
+	SELECT o.title, count(*) as count
+    FROM tickets.orders AS o
+    WHERE o.performance_date = p_performance_date
+    GROUP BY o.title;
+END;
+$$;
+
+-- function for creating get reserved tickets count reserved on a specific date for a specific performance day for each show
+CREATE OR REPLACE FUNCTION tickets.get_reserved_tickets_bulk_on_day(p_query_date date, p_performance_date date)
+RETURNS SETOF tickets.tickets_reserved
+ LANGUAGE plpgsql
+AS $$
+BEGIN
+	RETURN QUERY
+	SELECT o.title, count(*) as count
+    FROM tickets.orders AS o
+    WHERE o.performance_date = p_performance_date AND o.reservation_date = p_query_date
+    GROUP BY o.title;
+END;
+$$;

@@ -1,21 +1,17 @@
 package tickets4sale.models
 
-import org.joda.time.{Days, LocalDate}
+import org.joda.time.LocalDate
 import org.joda.time.format.ISODateTimeFormat
+import tickets4sale.config.Config
 import tickets4sale.models.Genres.Genre
-import tickets4sale.repository.{ShowCSVRepository, TicketOrderEmptyRepository}
-import tickets4sale.services.TicketOrderServiceFactory
-import tickets4sale.utils.DateUtils
-
-import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
 import scala.util.{Failure, Try}
 
 case class Show(title: String, openingDay: LocalDate, genre: Genre)
 
-object Show {
+object Show extends Config {
 
-  val all = readAllFromCsv(Source.fromFile("shows.csv").getLines())._1
+  val all = readAllFromCsv(Source.fromFile(csvPath).getLines())._1
 
   def readFromLine(line: String): Try[Show] = Try {
     val properties = line.split("\\,").map(_.trim)
