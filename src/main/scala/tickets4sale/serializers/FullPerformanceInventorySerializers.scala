@@ -1,13 +1,10 @@
 package tickets4sale.serializers
 
-import spray.json.{DefaultJsonProtocol, JsArray, JsObject, JsValue, RootJsonFormat}
+import spray.json.{JsObject, JsValue, RootJsonFormat, _}
 import tickets4sale.behaviors.Inventory.FullPerformanceInventory
-import tickets4sale.models.{PerformanceInventory, Show}
-import spray.json._
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-
 
 object FullPerformanceInventorySerializers {
+
   import MapSerializers._
 
   implicit object FullPerformanceInventorySerializer extends RootJsonFormat[FullPerformanceInventory] {
@@ -20,4 +17,5 @@ object FullPerformanceInventorySerializers {
       JsObject(("inventory", inv.inventory.toJson))
     }
   }
+
 }

@@ -12,6 +12,7 @@ import scala.concurrent.Future
 
 
 trait DatabaseOps {
+
   import scala.concurrent.ExecutionContext.Implicits.global
 
   case class Order(id: Long, title: String, reservationDate: LocalDate, performanceDate: LocalDate)

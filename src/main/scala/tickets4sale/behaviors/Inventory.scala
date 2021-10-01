@@ -4,10 +4,8 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import org.joda.time.LocalDate
 import tickets4sale.behaviors.Inventory._
-import tickets4sale.models.{PerformanceInventory, Show}
+import tickets4sale.models.PerformanceInventory
 import tickets4sale.services.TicketOrderServiceFactory
-import scala.concurrent.{ExecutionContext, Future}
-import scala.io.Source
 import scala.util.{Failure, Success}
 
 object Inventory {

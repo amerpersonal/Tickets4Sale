@@ -3,7 +3,7 @@ package unit
 import org.joda.time.{DateTimeZone, LocalDate}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import tickets4sale.models.{Genres, PerformanceInventory, Show, TicketSaleState}
+import tickets4sale.models.{Genres, PerformanceInventory, Show, TicketSaleStates}
 import tickets4sale.repository.TicketOrderEmptyRepository
 import tickets4sale.services.TicketOrderServiceFactory
 
@@ -42,7 +42,7 @@ class ShowInventorySpec extends AnyFlatSpec with Matchers {
     val queryDate = parseDate("2018-01-01")
     val performanceDate = parseDate("2018-07-01")
 
-    serviceFactory.ticketOrderService.inventory(show, queryDate, performanceDate).map(_  shouldEqual Some(PerformanceInventory(show, 200, 0, TicketSaleState.SaleNotStarted)))
+    serviceFactory.ticketOrderService.inventory(show, queryDate, performanceDate).map(_  shouldEqual Some(PerformanceInventory(show, 200, 0, TicketSaleStates.SaleNotStarted)))
   }
 
   it should "return correct inventory for a show when sale is open" in {
@@ -53,7 +53,7 @@ class ShowInventorySpec extends AnyFlatSpec with Matchers {
     val queryDate = parseDate("2018-08-01")
     val performanceDate = parseDate("2018-08-15")
 
-    serviceFactory.ticketOrderService.inventory(show, queryDate, performanceDate).map(_ shouldEqual Some(PerformanceInventory(show, 50, 5, TicketSaleState.OpenForSale)))
+    serviceFactory.ticketOrderService.inventory(show, queryDate, performanceDate).map(_ shouldEqual Some(PerformanceInventory(show, 50, 5, TicketSaleStates.OpenForSale)))
   }
 
 
@@ -65,7 +65,7 @@ class ShowInventorySpec extends AnyFlatSpec with Matchers {
     val queryDate = parseDate("2018-08-01")
     val performanceDate = parseDate("2018-07-15")
 
-    serviceFactory.ticketOrderService.inventory(show, queryDate, performanceDate).map(_ shouldEqual Some(PerformanceInventory(show, 0, 0, TicketSaleState.InThePast)))
+    serviceFactory.ticketOrderService.inventory(show, queryDate, performanceDate).map(_ shouldEqual Some(PerformanceInventory(show, 0, 0, TicketSaleStates.InThePast)))
   }
 
   it should "return correct inventory for a show when performance day is the first day running in big hall" in {
@@ -76,7 +76,7 @@ class ShowInventorySpec extends AnyFlatSpec with Matchers {
     val queryDate = openingDay.minusDays(30)
     val performanceDate = openingDay
 
-    serviceFactory.ticketOrderService.inventory(show, queryDate, performanceDate).map(_ shouldEqual Some(PerformanceInventory(show, 200, 0, TicketSaleState.SaleNotStarted)))
+    serviceFactory.ticketOrderService.inventory(show, queryDate, performanceDate).map(_ shouldEqual Some(PerformanceInventory(show, 200, 0, TicketSaleStates.SaleNotStarted)))
   }
 
   it should "return correct inventory for a show when performance day is the last day running in big hall" in {
@@ -87,7 +87,7 @@ class ShowInventorySpec extends AnyFlatSpec with Matchers {
     val performanceDate = openingDay.plusDays(59)
     val queryDate = performanceDate.minusDays(10)
 
-    serviceFactory.ticketOrderService.inventory(show, queryDate, performanceDate).map(_ shouldEqual Some(PerformanceInventory(show, 60, 10, TicketSaleState.OpenForSale)))
+    serviceFactory.ticketOrderService.inventory(show, queryDate, performanceDate).map(_ shouldEqual Some(PerformanceInventory(show, 60, 10, TicketSaleStates.OpenForSale)))
   }
 
   it should "return correct inventory for a show when performance day is the first day running in small hall" in {
@@ -98,7 +98,7 @@ class ShowInventorySpec extends AnyFlatSpec with Matchers {
     val queryDate = openingDay.minusDays(30)
     val performanceDate = openingDay.plusDays(60)
 
-    serviceFactory.ticketOrderService.inventory(show, queryDate, performanceDate).map(_ shouldEqual Some(PerformanceInventory(show, 100, 0, TicketSaleState.SaleNotStarted)))
+    serviceFactory.ticketOrderService.inventory(show, queryDate, performanceDate).map(_ shouldEqual Some(PerformanceInventory(show, 100, 0, TicketSaleStates.SaleNotStarted)))
   }
 
   it should "return correct inventory for a show when performance day is the last day" in {
@@ -109,7 +109,7 @@ class ShowInventorySpec extends AnyFlatSpec with Matchers {
     val queryDate = openingDay.plusDays(90)
     val performanceDate = openingDay.plusDays(99)
 
-    serviceFactory.ticketOrderService.inventory(show, queryDate, performanceDate).map(_ shouldEqual Some(PerformanceInventory(show, 25, 5, TicketSaleState.OpenForSale)))
+    serviceFactory.ticketOrderService.inventory(show, queryDate, performanceDate).map(_ shouldEqual Some(PerformanceInventory(show, 25, 5, TicketSaleStates.OpenForSale)))
   }
 
 }

@@ -8,17 +8,17 @@ object Genres {
     def price: Double
   }
 
-  object Musical extends Genre {
+  final object Musical extends Genre {
     val name = "MUSICAL"
     val price = 70
   }
 
-  object Comedy extends Genre {
+  final object Comedy extends Genre {
     val name = "COMEDY"
     val price = 50
   }
 
-  object Drama extends Genre {
+  final object Drama extends Genre {
     val name = "DRAMA"
     val price = 40
   }

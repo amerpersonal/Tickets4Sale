@@ -1,6 +1,5 @@
 package tickets4sale.serializers.requests
 
-import org.joda.time.format.ISODateTimeFormat
 import spray.json.{JsObject, JsString, JsValue, RootJsonFormat}
 import tickets4sale.models.requests.ReserveTicketRequest
 import tickets4sale.utils.DateUtils
@@ -26,9 +25,18 @@ object ReserveTicketRequestSerializer {
         case _ => throw new Throwable(s"invalid or missing performance_date ${fields.get("performance_date")}")
       }
 
-      ReserveTicketRequest(title, queryDate, performanceDate)
+      ReserveTicketRequest(title, performanceDate, queryDate)
     }
 
-    implicit def write(req: ReserveTicketRequest): JsObject = ???
+    implicit def write(req: ReserveTicketRequest): JsObject = {
+      val baseFields = List(
+        ("title", JsString(req.title)),
+        ("performance_date", JsString(req.performanceDate.toString()))
+      )
+
+      val fields = req.queryDate.map(qa => ("query_date", JsString(qa.toString())) :: baseFields).getOrElse(baseFields)
+
+      JsObject(fields: _*)
+    }
   }
 }

@@ -30,7 +30,7 @@ class Router(inventoryActor: ActorRef[InventoryMessage])(implicit system: ActorS
       }
     } ~
       post {
-        path("show" / "reserve_ticket") {
+        path("reserve_ticket") {
           entity(as[ReserveTicketRequest]) { request =>
 
             val response: Future[ReservationStatus] = inventoryActor.ask(ReserveTicket(request.title, request.queryDate.getOrElse(LocalDate.now(DateTimeZone.UTC)), request.performanceDate, _))
@@ -38,6 +38,7 @@ class Router(inventoryActor: ActorRef[InventoryMessage])(implicit system: ActorS
             onComplete(response){
               case Success(rs: ReservationSuccess) => complete(rs)
               case Success(rf: ReservationFailure) => complete(StatusCodes.BadRequest, rf)
+              case _ => complete(StatusCodes.BadRequest, ReservationFailure(new Throwable("Unhandled response error")))
             }
           }
         }

@@ -1,6 +1,5 @@
 package tickets4sale.database
 
-import tickets4sale.Runner.{dbUrl, _}
 import slick.jdbc.PostgresProfile.api._
 import tickets4sale.config.Config
 

@@ -48,14 +48,14 @@ object Halls {
     }
   }
 
-  case object Big extends Hall {
+  final case object Big extends Hall {
     val capacity = config.getInt("tickets4sale.halls.big.capacity")
     val dayStart = config.getInt("tickets4sale.halls.big.day-start")
     val dayEnd = config.getInt("tickets4sale.halls.big.day-end")
     val ticketsPerDay = config.getInt("tickets4sale.halls.big.tickets-sold-per-day")
   }
 
-  case object Small extends Hall {
+  final case object Small extends Hall {
     val capacity = config.getInt("tickets4sale.halls.small.capacity")
     val dayStart = config.getInt("tickets4sale.halls.small.day-start")
     val dayEnd = config.getInt("tickets4sale.halls.small.day-end")

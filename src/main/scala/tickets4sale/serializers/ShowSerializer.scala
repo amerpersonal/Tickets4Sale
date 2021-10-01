@@ -28,7 +28,6 @@ object ShowSerializer {
         case _ => throw new Throwable(s"invalid or missing ${fields.get("genre")} genre format")
       }
 
-      println(genre)
       Show(title, openingDay, Genres.fromName(genre).get)
     }
 

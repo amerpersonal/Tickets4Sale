@@ -1,11 +1,8 @@
 package tickets4sale.repository
 
 import org.joda.time.LocalDate
-import slick.jdbc.PostgresProfile
-import tickets4sale.database.DatabaseConnection
 import tickets4sale.database.dsl.DatabaseOps
 import tickets4sale.models.Show
-
 import scala.concurrent.Future
 
 trait TicketOrderDatabaseRepository extends TicketOrderRepository with DatabaseOps {

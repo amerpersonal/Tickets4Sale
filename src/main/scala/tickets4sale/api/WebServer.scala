@@ -8,15 +8,12 @@ import tickets4sale.behaviors.Inventory
 import tickets4sale.config.Config
 import tickets4sale.repository.TicketOrderDatabaseRepository
 import tickets4sale.services.TicketOrderServiceFactory
-
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object WebServer extends Validators with Config {
   def main(args: Array[String]): Unit = {
     val guardian = Behaviors.setup[Nothing] { context =>
-
-//      val inventoryActor = context.spawn(Inventory(), name = "InventoryActor")
 
       val inventory = new Inventory() with TicketOrderServiceFactory with TicketOrderDatabaseRepository
       val inventoryActor = context.spawn(inventory.apply(), name = "InventoryActor")
@@ -31,14 +28,12 @@ object WebServer extends Validators with Config {
 
       val router = new Router(inventoryActor)
 
-      val futureBinding = Http(context.system).newServerAt(serverHost, serverPort).bind(router.routes)
+      val server = Http(context.system).newServerAt(serverHost, serverPort).bind(router.routes)
 
-      futureBinding.onComplete {
+      server.onComplete {
         case Success(binding) =>
           val address = binding.localAddress
-          actorSystem.log.info("Server online at http://{}:{}/",
-            address.getHostString,
-            address.getPort)
+          actorSystem.log.info("Server online at http://{}:{}/", address.getHostString, address.getPort)
         case Failure(ex) =>
           actorSystem.log.error("Failed to bind HTTP endpoint, terminating system", ex)
           actorSystem.terminate()

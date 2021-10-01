@@ -1,22 +1,17 @@
 package tickets4sale.serializers
 
-import spray.json.{JsArray, JsObject, JsValue, RootJsonFormat}
-import tickets4sale.models.{PerformanceInventory, Show}
-import spray.json._
-import DefaultJsonProtocol._
+import spray.json.{JsArray, JsObject, JsValue, RootJsonFormat, _}
+import tickets4sale.models.PerformanceInventory
 
 object MapSerializers {
+
   import PerformanceInventorySerializer._
-  import ShowSerializer._
 
   implicit object MapSerializer extends RootJsonFormat[Map[String, Seq[PerformanceInventory]]] {
 
     def read(js: JsValue): Map[String, Seq[PerformanceInventory]] = {
-      println(s"xxx field: ${js.asJsObject.fields.values.head}")
 
-      js.asJsObject.fields.map { case (field, JsArray(elements)) =>
-        println(s"field: ${field}")
-        println(s"elements: ${elements}")
+      js.asJsObject.fields.collect { case (field, JsArray(elements)) =>
         field -> elements.map(PerformanceInventorySerializer.performanceInventorySerializer.read(_))
       }
     }
@@ -31,4 +26,5 @@ object MapSerializers {
       JsObject(r: _*)
     }
   }
+
 }

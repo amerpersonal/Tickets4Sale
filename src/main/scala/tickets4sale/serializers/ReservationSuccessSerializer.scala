@@ -1,7 +1,7 @@
 package tickets4sale.serializers
 
-import spray.json.{DefaultJsonProtocol, JsNumber, JsObject, JsString, JsValue, RootJsonFormat}
-import tickets4sale.behaviors.Inventory.{ReservationStatus, ReservationSuccess}
+import spray.json.{JsNumber, JsObject, JsString, JsValue, RootJsonFormat}
+import tickets4sale.behaviors.Inventory.ReservationSuccess
 
 object ReservationSuccessSerializer {
 
