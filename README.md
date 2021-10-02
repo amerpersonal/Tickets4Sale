@@ -232,7 +232,7 @@ If we want to Scale the process so it has better performance for big files and s
 - experiment with other data structures, such as BinaryTree or similar which may be more suitable for sorting hugh data sets
 - use more optimised algorithms for sorting/searching in the process, based on the data types and structures
 
-To write a code more in a functional way, we may use Typelevel stack (cats.io and http4s) instead of Lightbend(Akka). In [CLI](https://github.com/amerpersonal/Tickets4Sale/blob/master/src/main/scala/tickets4sale/Cli.scala) I made a few tweaks on writing/reading parameters from Stdin/Stdout. Most IO operations are lifted into Future and then for comprehension is used. This is inspired by cats.io and it's IO abstraction. For example, cats has IO.printline and IO.pure abstractions which would enable us to write a similar code for CLI client out of the box.
+To write a code more in a functional way, we may use Typelevel stack (cats.io and http4s) or ZIO instead of Lightbend(Akka). In [CLI](https://github.com/amerpersonal/Tickets4Sale/blob/master/src/main/scala/tickets4sale/Cli.scala) I made a few tweaks on writing/reading parameters from Stdin/Stdout. Most IO operations are lifted into Future and then for comprehension is used. This is inspired by cats.io and it's IO abstraction. For example, cats has IO.printline and IO.pure abstractions which would enable us to write a similar code for CLI client out of the box.
 
 However, Future has some known limitations - it cannot be cancelled, it is executed as soon as it is created etc. I simply use it because I'm the most familiar with it. We started introducing cats.io for new services on the project.
 
