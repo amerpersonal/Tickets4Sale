@@ -35,6 +35,7 @@ trait TicketOrderServiceFactory extends Config {
       }
     }
 
+    // this function could be implemented in a better way, using recursion to iterate over all inventories, instead of using group by
     def totalInventoryForShows(shows: Seq[Show], queryDate: LocalDate, performanceDate: LocalDate): Future[Map[String, Seq[PerformanceInventory]]] = {
       val clearInventories = shows.map(getClearInventory(_, queryDate, performanceDate))
 

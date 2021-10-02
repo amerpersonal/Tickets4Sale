@@ -12,7 +12,7 @@ object MapSerializers {
     def read(js: JsValue): Map[String, Seq[PerformanceInventory]] = {
 
       js.asJsObject.fields.collect { case (field, JsArray(elements)) =>
-        field -> elements.map(PerformanceInventorySerializer.performanceInventorySerializer.read(_))
+        field -> elements.map(_.convertTo[PerformanceInventory])
       }
     }
 

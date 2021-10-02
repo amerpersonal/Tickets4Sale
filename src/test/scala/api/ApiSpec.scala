@@ -13,11 +13,11 @@ import org.scalatest.wordspec.AnyWordSpec
 import spray.json._
 import tickets4sale.api.Router
 import tickets4sale.behaviors.Inventory
+import tickets4sale.behaviors.Inventory.{FullPerformanceInventory, ReservationFailure}
 import tickets4sale.config.Config
 import tickets4sale.models.requests.ReserveTicketRequest
 import tickets4sale.models.{Halls, TicketSaleStates}
 import tickets4sale.repository.TicketOrderMapRepository
-import tickets4sale.serializers.FullPerformanceInventorySerializers
 import tickets4sale.serializers.ReservationFailureSerializer.CustomReservationFailureSerializer
 import tickets4sale.serializers.requests.ReserveTicketRequestSerializer._
 import tickets4sale.services.TicketOrderServiceFactory
@@ -25,6 +25,7 @@ import tickets4sale.utils.DateUtils
 import scala.concurrent.duration._
 
 class ApiSpec extends AnyWordSpec with ScalatestRouteTest with should.Matchers with ScalaFutures with Config {
+  import tickets4sale.serializers.FullPerformanceInventorySerializers._
 
   lazy val testKit = ActorTestKit()
 
@@ -44,7 +45,7 @@ class ApiSpec extends AnyWordSpec with ScalatestRouteTest with should.Matchers w
   "return success on root GET request" in {
     Get("/api/v1/performance_inventory?query_date=2021-11-25&performance_date=2021-12-05") ~> Route.seal(router.routes) ~> check {
       status shouldEqual StatusCodes.OK
-      val inventory = FullPerformanceInventorySerializers.FullPerformanceInventorySerializer.read(responseAs[String].parseJson).inventory
+      val inventory = entityAs[String].parseJson.convertTo[FullPerformanceInventory].inventory
 
       inventory.size shouldEqual 3
     }
@@ -56,14 +57,16 @@ class ApiSpec extends AnyWordSpec with ScalatestRouteTest with should.Matchers w
 
       status shouldEqual StatusCodes.BadRequest
 
-      CustomReservationFailureSerializer.read(entityAs[String].parseJson).err.getMessage shouldEqual "Show not exists"
+      entityAs[String].parseJson.convertTo[ReservationFailure].err.getMessage shouldEqual "Show not exists"
     }
   }
 
   "fail on reserving ticket for non running performance" in {
-    Get("/api/v1/performance_inventory?query_date=2021-11-25&performance_date=2021-12-05") ~> Route.seal(router.routes) ~> check {
+    val queryDate = "2021-11-25"
+    val performanceDate = "2021-12-05"
+    Get(s"/api/v1/performance_inventory?query_date=${queryDate}&performance_date=${performanceDate}") ~> Route.seal(router.routes) ~> check {
       status shouldEqual StatusCodes.OK
-      val inventory = FullPerformanceInventorySerializers.FullPerformanceInventorySerializer.read(responseAs[String].parseJson).inventory
+      val inventory = entityAs[String].parseJson.convertTo[FullPerformanceInventory].inventory
 
       val show = inventory.values.head.head.show
 
@@ -71,7 +74,7 @@ class ApiSpec extends AnyWordSpec with ScalatestRouteTest with should.Matchers w
       Post("/api/v1/reserve_ticket", HttpEntity(ContentTypes.`application/json`, req.toJson.toString())) ~> Route.seal(router.routes) ~> check {
 
         status shouldEqual StatusCodes.BadRequest
-        CustomReservationFailureSerializer.read(entityAs[String].parseJson).err.getMessage shouldEqual "Show not running"
+        entityAs[String].parseJson.convertTo[ReservationFailure].err.getMessage shouldEqual "Show not running"
       }
     }
   }
@@ -83,7 +86,7 @@ class ApiSpec extends AnyWordSpec with ScalatestRouteTest with should.Matchers w
     Get(s"/api/v1/performance_inventory?query_date=${queryDate}&performance_date=${performanceDate}") ~> Route.seal(router.routes) ~> check {
 
       status shouldEqual StatusCodes.OK
-      val inventory = FullPerformanceInventorySerializers.FullPerformanceInventorySerializer.read(responseAs[String].parseJson).inventory
+      val inventory = responseAs[String].parseJson.convertTo[FullPerformanceInventory].inventory
 
       val performanceShow = inventory.values.flatten.find { i =>
         i.status == TicketSaleStates.OpenForSale &&
@@ -102,7 +105,7 @@ class ApiSpec extends AnyWordSpec with ScalatestRouteTest with should.Matchers w
       Post("/api/v1/reserve_ticket", HttpEntity(ContentTypes.`application/json`, req.toJson.toString())) ~> Route.seal(router.routes) ~> check {
         status shouldEqual StatusCodes.BadRequest
 
-        CustomReservationFailureSerializer.read(entityAs[String].parseJson).err.getMessage shouldEqual "No tickets left for ordering on this day"
+        entityAs[String].parseJson.convertTo[ReservationFailure].err.getMessage shouldEqual "No tickets left for ordering on this day"
       }
     }
   }
@@ -114,7 +117,7 @@ class ApiSpec extends AnyWordSpec with ScalatestRouteTest with should.Matchers w
     Get(s"/api/v1/performance_inventory?query_date=${queryDate}&performance_date=${performanceDate}") ~> Route.seal(router.routes) ~> check {
 
       status shouldEqual StatusCodes.OK
-      val inventory = FullPerformanceInventorySerializers.FullPerformanceInventorySerializer.read(responseAs[String].parseJson).inventory
+      val inventory = responseAs[String].parseJson.convertTo[FullPerformanceInventory].inventory
 
       val performanceShow = inventory.values.flatten.find { i =>
         i.status == TicketSaleStates.OpenForSale &&
@@ -136,7 +139,7 @@ class ApiSpec extends AnyWordSpec with ScalatestRouteTest with should.Matchers w
       Post("/api/v1/reserve_ticket", HttpEntity(ContentTypes.`application/json`, req.toJson.toString())) ~> Route.seal(router.routes) ~> check {
         status shouldEqual StatusCodes.BadRequest
 
-        CustomReservationFailureSerializer.read(entityAs[String].parseJson).err.getMessage shouldEqual "No tickets left for ordering on this day"
+        entityAs[String].parseJson.convertTo[ReservationFailure].err.getMessage shouldEqual "No tickets left for ordering on this day"
       }
     }
   }

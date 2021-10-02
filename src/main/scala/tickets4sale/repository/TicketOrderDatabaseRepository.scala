@@ -9,15 +9,16 @@ trait TicketOrderDatabaseRepository extends TicketOrderRepository with DatabaseO
   import scala.concurrent.ExecutionContext.Implicits.global
 
   def getReservedTickets(show: Show, queryDate: LocalDate, performanceDate: LocalDate): Future[(Int, Int)] =
-    super[DatabaseOps].getReservedTickets(show.title, queryDate, performanceDate)
+    getReservedTickets(show.title, queryDate, performanceDate)
 
   def reserveTicket(show: Show, queryDate: LocalDate, performanceDate: LocalDate): Future[Int] = {
     reserveTicket(show.title, queryDate, performanceDate)
   }
 
-  override def getReservedTicketsForDay(show: Show, queryDate: LocalDate, performanceDate: LocalDate): Future[Int] =
-    super[DatabaseOps].getReservedTicketsForDay(show.title, queryDate, performanceDate)
+  def getReservedTicketsForDay(show: Show, queryDate: LocalDate, performanceDate: LocalDate): Future[Int] =
+    getReservedTicketsForDay(show.title, queryDate, performanceDate)
 
+  // 2 functions are deliberately called in parallel, to better utilise multithreading environment, instead of executing single large query for finding both total and on day reservations
   def getReservedTicketsBulk(queryDate: LocalDate, performanceDate: LocalDate): Future[Map[String, (Int, Int)]] = {
     Future.sequence(Seq(
       getReservedTicketsBulkOnDay(queryDate, performanceDate),

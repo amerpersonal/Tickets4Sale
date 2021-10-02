@@ -1,32 +1,24 @@
 package tickets4sale.serializers
 
-import spray.json.{DefaultJsonProtocol, JsObject, JsString, JsValue, RootJsonFormat}
-import tickets4sale.models.{Genres, PerformanceInventory, Show}
-import tickets4sale.serializers.PerformanceInventorySerializer.jsonFormat4
+import org.joda.time.LocalDate
+import spray.json.{DefaultJsonProtocol, JsObject, JsString, JsValue, JsonReader, RootJsonFormat}
+import tickets4sale.models.{Genres, Show}
 import tickets4sale.utils.DateUtils
+import scala.util.Try
 
 object ShowSerializer {
 
+  import DefaultJsonProtocol._
+
   implicit object CustomShowSerializer extends RootJsonFormat[Show] {
-    //  implicit val showSerializer = jsonFormat3(Show.apply)
+    import SerializationHelpers._
 
     implicit def read(js: JsValue): Show = {
-      val fields = js.asJsObject().fields
+      val jsObj = js.asJsObject()
 
-      val title = fields.get("title") match {
-        case Some(v: JsString) => v.value
-        case _ => throw new Throwable(s"invalid or missing ${fields.get("title")} title format")
-      }
-
-      val openingDay = fields.get("opening_day") match {
-        case Some(v: JsString) => DateUtils.parseDate(v.value)
-        case _ => throw new Throwable(s"invalid or missing opening_day ${fields.get("opening_day")}")
-      }
-
-      val genre = fields.get("genre") match {
-        case Some(v: JsString) => v.value
-        case _ => throw new Throwable(s"invalid or missing ${fields.get("genre")} genre format")
-      }
+      val title = jsObj.readValue[String]("title")
+      val openingDay = jsObj.readAndTransformValue[LocalDate]("opening_day", DateUtils.parseDate)
+      val genre = jsObj.readValue[String]("genre")
 
       Show(title, openingDay, Genres.fromName(genre).get)
     }
@@ -38,5 +30,6 @@ object ShowSerializer {
         "genre" -> JsString(s.genre.name)
       )
     }
+
   }
 }

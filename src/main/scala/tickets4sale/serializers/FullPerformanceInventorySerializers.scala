@@ -4,7 +4,6 @@ import spray.json.{JsObject, JsValue, RootJsonFormat, _}
 import tickets4sale.behaviors.Inventory.FullPerformanceInventory
 
 object FullPerformanceInventorySerializers {
-
   import MapSerializers._
 
   implicit object FullPerformanceInventorySerializer extends RootJsonFormat[FullPerformanceInventory] {
