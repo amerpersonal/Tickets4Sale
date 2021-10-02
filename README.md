@@ -223,6 +223,10 @@ There is a requirements section which talks about different prices for tickets, 
 
 I added a few unit and API tests. In my opinion, tests are of utmost importance. They will certainly help to find issues at initial implementation. The are especially usefull to check if new changes break any existing functionalities.
 
+## Logging
+
+Logging is not implemented as a part of this POC. Of course, for production system, we need to have a clear logs. I usually do it using Logback.
+
 ## Scalability and further options
 
 If we want to Scale the process so it has better performance for big files and streams, these are some of the options we can use:
